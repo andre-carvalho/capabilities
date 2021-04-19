@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- metas -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge; chrome=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- others -->
+    <title>TerraBrasilis</title>
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons"></link>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" ></script>
+    <style>h3{text-transform:capitalize;}
+    .btnlink{cursor: pointer;color:darkcyan;font-size: small}
+    .servicelink{font-size: small;display: contents;}
+    </style>
+
+</head>
+<body>
+    <div id="loading" style="width: 100%;text-align: center;">
+        <img src="http://terrabrasilis.dpi.inpe.br/app/assets/img/terrabrasilis.386c3bc639694449f39885f174d35019.gif">
+    </div>
+	<div id="all-layers"></div>
+	
+    <script>
+    var copy=(btn,text)=> {
+            var input = document.createElement('input');
+            input.setAttribute('value', text);
+            document.body.appendChild(input);
+            input.select();
+            var result = document.execCommand('copy');
+            document.body.removeChild(input);
+            btn.setAttribute('style','color:#'+((result)?('7bca5c'):('ff0000')));
+            if(getCookie("pll_language")=="en"){
+                ((!result)?(alert('Link copied!\n'+text)):(prompt('Failed to copy the link.',text)));
+            }else{
+                ((!result)?(alert('Link copiado!\n'+text)):(prompt('Falha ao copiar o link.',text)));
+            }
+            return result;
+        };
+    // get cookie for language "pll_language"
+    var getCookie=(cname)=> {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    };
+    window.onload=function(){
+        let url="http://terrabrasilis.dpi.inpe.br/geoserver/wms?service=WMS&request=GetCapabilities&version=1.3.0";
+        // url="./data/capabilities.xml";
+        $.ajax({
+            type: "GET",
+		    url: url,
+		    dataType: "xml",
+		    success: function(xml) {
+                let workspaces={}, wskeys=[];
+     			$(xml).find('Layer').each(function(){
+     				if ($(this).children("Name").text().match(/:/g) != null) {
+                        let l=$(this).children("Name").text().split(":");
+                        let isVector=($(this).children('keywordlist').text().match(/features/g) != null)?(true):(false);
+                        let name="",meta="";
+                        if(!wskeys.includes(l[0])) wskeys.push(l[0]);
+                        if($(this).children("MetadataURL").length && $(this).children("MetadataURL").children("OnlineResource").length){
+                            meta = $(this).children("MetadataURL").children("OnlineResource").attr('xlink:href');
+                        }
+                        name=(l[0].split('-')).join(' ');
+                        if(!workspaces[l[0]]) workspaces[l[0]]=[];
+                        workspaces[l[0]].push({"isVector":isVector,"name":name,"title":$(this).children("Title").text(),"meta":meta,lname:l[1]});
+     				}
+			    });
+                
+                wskeys=wskeys.sort();
+                for(let key in wskeys){
+                    let workspace=workspaces[wskeys[key]];
+                    if(workspace.length) {
+                        let getGeoserviceLink=(ws,ly,isVector)=>{
+                            let title='';
+                            if(getCookie("pll_language")=="en"){
+                                title='Copy the link to the geoservice for that layer.';
+                            }else{
+                                title='Copiar o link para o geoserviço desta camada.';
+                            }
+                            let lk='http://terrabrasilis.dpi.inpe.br/geoserver/'+ws+'/'+ly+'/ows';
+                            return '<div class="servicelink">('+(isVector?'WMS/WFS':'WMS/WCS')+' <span class="material-icons btnlink" title="'+title+'" onclick="javascript:copy(this,\''+lk+'\');">link</span>)</div>';
+                        };
+
+                        let html='<div class="workspace">';
+                        html+='<h3>' +workspace[0].name + '</h3>';
+                        html+='<ul>';
+                        workspace.forEach(
+                            (l) => {
+                                let mlk=(l.meta=="")?(l.title):('<a href="'+l.meta+'">' + l.title + '</a>');
+                                html+='<li>'+mlk+'&nbsp;'+getGeoserviceLink(wskeys[key],l.lname,l.isVector)+'</li>';
+                            }
+                        );
+                        html+='</ul>';
+                        html+='</div>';
+                        $("#all-layers").append(html);
+                    }
+                }
+                $('#loading').hide();
+		    }
+	    });
+    }  
+    </script>
+</body>
+</html>
