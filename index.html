@@ -31,9 +31,9 @@
             document.body.removeChild(input);
             btn.setAttribute('style','color:#'+((result)?('7bca5c'):('ff0000')));
             if(getCookie("pll_language")=="en"){
-                ((!result)?(alert('Link copied!\n'+text)):(prompt('Failed to copy the link.',text)));
+                ((result)?(alert('Link copied!\n'+text)):(prompt('Failed to copy the link.',text)));
             }else{
-                ((!result)?(alert('Link copiado!\n'+text)):(prompt('Falha ao copiar o link.',text)));
+                ((result)?(alert('Link copiado!\n'+text)):(prompt('Falha ao copiar o link.',text)));
             }
             return result;
         };
